@@ -11,15 +11,15 @@ filters: &filters
 jobs:
   unit-tests:
     docker:
-      - image: cimg/node:24.15.0
+      - image: cimg/base:current
     steps:
       - checkout
       - run:
-          name: Install dependencies
-          command: npm ci --ignore-scripts
+          name: Check shell scripts
+          command: shellcheck src/scripts/*.sh test/*.sh
       - run:
-          name: Check runtime and source
-          command: npm run check
+          name: Test shell scripts
+          command: bash test/scripts_test.sh
 
 workflows:
   lint-pack:

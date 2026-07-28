@@ -1,54 +1,53 @@
-<!-- Update this file when changing orb contracts, architecture, build tooling, tests, or release behavior. -->
+<!-- Update this file when changing orb contracts, CLI installation, tests, or release behavior. -->
 
 # Tenzai Incremental Test CircleCI Orb
 
-Public CircleCI registry orb (`tenzai/incremental-test`) that triggers a fire-and-forget Tenzai commit-diff security test after a successful deployment.
+Public CircleCI registry orb (`tenzai/incremental-test`) that installs the Tenzai CLI and triggers a fire-and-forget commit-diff test after deployment.
 
 ## Structure
 
-| Path                            | Purpose                                                                |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| `src/@orb.yml`                  | Registry metadata                                                      |
-| `src/commands/trigger.yml`      | Reusable command for Node-compatible executors                         |
-| `src/jobs/commit-diff-test.yml` | Turnkey post-deployment job                                            |
-| `src/executors/default.yml`     | Default Node 24 executor                                               |
-| `src/scripts/trigger.js`        | Provider-neutral CircleCI and Tenzai API runtime                       |
-| `src/examples/deploy.yml`       | Registry usage example                                                 |
-| `test/trigger.test.mjs`         | Node unit tests                                                        |
-| `.circleci/`                    | Orb Development Kit validation, integration test, and release pipeline |
+| Path                            | Purpose                                                     |
+| ------------------------------- | ----------------------------------------------------------- |
+| `src/@orb.yml`                  | Registry metadata                                           |
+| `src/commands/install.yml`      | Checksum-verified Tenzai CLI installer                      |
+| `src/commands/trigger.yml`      | Reusable command for an already-installed CLI               |
+| `src/jobs/commit-diff-test.yml` | Turnkey install-and-trigger job                              |
+| `src/executors/default.yml`     | Default `cimg/base` Linux executor                           |
+| `src/scripts/install.sh`        | Release selection, verification, extraction, and PATH setup |
+| `src/scripts/trigger.sh`        | First-run skip and `tenzai test run` invocation              |
+| `test/scripts_test.sh`          | Shell tests with mocked release downloads and CLI calls      |
+| `.circleci/`                    | Orb Development Kit validation and release pipeline          |
 
 ## Development
 
-Use Node 24 and npm:
-
 ```bash
-npm ci --ignore-scripts
-npm run check
+shellcheck src/scripts/*.sh test/*.sh
+bash test/scripts_test.sh
 circleci orb pack src > orb.yml
 circleci orb validate orb.yml
+circleci config validate .circleci/config.yml
 ```
 
-The runtime is CommonJS JavaScript with native `fetch`. It has no production dependencies and is included directly in the packed orb with `<<include(...)>>`; the run step dispatches it through Node with `shell: /usr/bin/env node`. Tests replace the process environment, native fetch, and console at the runtime boundary rather than adding production dependency-injection seams.
+The installer must continue to verify the adjacent SHA-256 asset before extracting or installing the CLI. Keep release URLs versioned and map Linux `x86_64` and `aarch64` to their exact Rust target names.
 
-## Orb Contract
+## Orb contract
 
-- Primary job: `commit-diff-test`; reusable command: `trigger`.
-- Default context variables: `TENZAI_ACCESS_KEY`, `TENZAI_APP_ID`, and `CIRCLECI_TOKEN`. The application ID can instead be passed through `app-id`.
-- The access key requires `app:read` and `scan:trigger` scopes.
-- The Tenzai API defaults to `https://api.tenzai.io` and can be changed with `base-url`; the CircleCI endpoint is fixed at `https://circleci.com/api/v2`.
-- API base URLs are normalized without trailing slashes. Result links are emitted only when an `api.*` host can be mapped to its `app.*` host.
-- Automatic mode finds the previous successful run of the same CircleCI workflow through Insights. Insights retains at most 90 days of history.
-- History pages are newest-first and fetched only until a page contains an eligible completed run. Incomplete Insights rows are skipped.
-- `from-commit` bypasses CircleCI history discovery and does not require `CIRCLECI_TOKEN`.
-- `dry-run` validates Tenzai authentication and application access, then stops. It does not require `CIRCLECI_TOKEN`.
-- `ignore-errors` reports failures but exits successfully so an unavailable trigger cannot prevent deployment workflow history from advancing.
-- Empty history skips successfully because the current run is treated as the first deployment.
-- Triggering is fire-and-forget. Never poll for the eventual test result.
-- The job does not check out repository contents.
-- The reusable command executes with Node and does not source `$BASH_ENV`; context, job-environment, or static parameter values must provide its inputs.
+- Primary job: `commit-diff-test`; reusable commands: `install` and `trigger`.
+- The job uses `cimg/base`, installs a pinned CLI release, and does not check out source.
+- The `trigger` command requires `tenzai` on `PATH`; it never installs implicitly.
+- Authentication uses the CLI-native `TENZAI_SERVICE_ACCOUNT_TOKEN` environment variable.
+- `app-id`, `repository`, `from-commit`, and `to-commit` are explicit orb parameters.
+- Empty and `<nil>` base commits skip successfully.
+- The intended caller values are `pipeline.git.repo_owner`, `pipeline.git.repo_name`, `pipeline.git.base_revision`, and `pipeline.git.revision`.
+- `pipeline.git.base_revision` represents the previous pipeline, not necessarily a successful deployment, and is unavailable to GitHub App projects.
+- Triggering delegates entirely to `tenzai test run --profile commit-diff` and never polls.
+- The CLI defaults to production and accepts another SaaS origin or environment alias through `server` / `TENZAI_SERVER`.
+- The service-account token needs `app:read` and `scan:trigger` permissions.
 
 Do not log credentials or include real customer identifiers in source, examples, or fixtures.
 
 ## Releases
 
-The Orb Development Kit pipeline packs, lints, reviews, and tests the orb. Tags matching `vX.Y.Z` publish immutable production versions to `tenzai/incremental-test`; other builds test the injected development orb. The dry-run integration test uses a restricted `tenzai-orb-testing` context containing `TENZAI_ACCESS_KEY` and `TENZAI_APP_ID`. Production publishing uses the restricted `orb-publishing` CircleCI context.
+The default CLI version is pinned in both `src/commands/install.yml` and `src/jobs/commit-diff-test.yml`; update both together and test the real archive in `cimg/base` before release.
+
+The Orb Development Kit pipeline packs, lints, reviews, and tests the orb. The integration test installs the CLI through the development orb and invokes only `--version` and `test run --help`. Tags matching `vX.Y.Z` publish immutable production versions to `tenzai/incremental-test` through the restricted `orb-publishing` context.

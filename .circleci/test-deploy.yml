@@ -17,10 +17,7 @@ release-filters: &release-filters
 workflows:
   test-deploy:
     jobs:
-      - incremental-test/commit-diff-test:
-          name: integration-test-dry-run
-          context: tenzai-orb-testing
-          dry-run: true
+      - integration-test:
           filters: *filters
       - orb-tools/pack:
           filters: *release-filters
@@ -31,6 +28,16 @@ workflows:
           enable_pr_comment: false
           context: orb-publishing
           requires:
-            - integration-test-dry-run
+            - integration-test
             - orb-tools/pack
           filters: *release-filters
+
+jobs:
+  integration-test:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - incremental-test/install
+      - run:
+          name: Verify Tenzai CLI
+          command: tenzai --version && tenzai test run --help

@@ -1,20 +1,18 @@
 # Tenzai Incremental Test — CircleCI Orb
 
-Trigger an AI-powered [Tenzai](https://tenzai.io) security test after a successful CircleCI deployment.
+Trigger a fire-and-forget [Tenzai](https://tenzai.io) commit-diff test after a successful CircleCI deployment.
 
-The orb is **fire-and-forget**. It compares the commit deployed by the previous successful run of the same workflow with the current commit, submits a `COMMIT_DIFF` test against an existing Tenzai application, and exits as soon as Tenzai accepts the request. It does not wait for the eventual verdict.
+The orb installs a pinned Tenzai CLI release, verifies its SHA-256 checksum, and submits a test from CircleCI's previous pipeline revision to the current revision. It exits as soon as Tenzai accepts the request.
 
 ## Quick start
 
-Create a restricted CircleCI context named `tenzai` with:
+Create a restricted CircleCI context named `tenzai` containing:
 
-| Variable            | Purpose                                                                     |
-| ------------------- | --------------------------------------------------------------------------- |
-| `TENZAI_ACCESS_KEY` | Tenzai service-account access key with `app:read` and `scan:trigger` scopes |
-| `TENZAI_APP_ID`     | ID of an existing Tenzai application                                        |
-| `CIRCLECI_TOKEN`    | CircleCI personal API token used to read workflow and pipeline history      |
+| Variable                       | Purpose                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `TENZAI_SERVICE_ACCOUNT_TOKEN` | Tenzai service-account token with `app:read` and `scan:trigger` permissions |
 
-Then run the orb job after deployment with `requires`:
+Then add the orb job after deployment:
 
 ```yaml
 version: 2.1
@@ -36,123 +34,103 @@ workflows:
       - deploy
       - tenzai/commit-diff-test:
           context: tenzai
+          app-id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
+          repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
+          from-commit: << pipeline.git.base_revision >>
+          to-commit: << pipeline.git.revision >>
           requires:
             - deploy
 ```
 
 Create the Tenzai application first, including its deployed target, connected code source, and any credentials the test needs. The orb does not create or configure applications.
 
-## Automatic commit discovery
+## Commit range behavior
 
-The orb uses `CIRCLE_WORKFLOW_ID` and the CircleCI v2 API to:
+`pipeline.git.base_revision` is CircleCI's previous pipeline revision on the branch. It is not limited to successful deployments. The orb skips successfully when CircleCI supplies no base revision or substitutes `<nil>`, such as on the first pipeline for a branch.
 
-1. Identify the current workflow and pipeline.
-2. Read successful runs of the same workflow from CircleCI Insights.
-3. Select the most recently completed run older than the current workflow.
-4. Use that run's pipeline revision as `fromCommit` and the current pipeline revision as `toCommit`.
+Automatic base revisions are available for GitHub OAuth and Bitbucket Cloud projects. CircleCI does not provide `pipeline.git.base_revision` to GitHub App projects; those projects must pass another commit value explicitly or the job will skip.
 
-The first deployment skips successfully because no previous deployment exists. CircleCI Insights retains at most 90 days of workflow history, so a workflow with no successful run in that window is also treated as a first deployment.
-
-Insights pages are returned newest-first. The orb stops reading history as soon as a page contains an eligible completed run and ignores incomplete rows for running or partially ingested workflows.
-
-By default, history is searched across all branches to match workflow-level deployment history. Set `history-branch` when the same workflow maintains independent deployment histories per branch.
-
-`CIRCLECI_TOKEN` must be a [CircleCI personal API token](https://circleci.com/docs/guides/toolkit/managing-api-tokens/) stored in a restricted context. CircleCI does not provide a job-scoped token that can read this API history.
-
-## Explicit commit range
-
-Set `from-commit` to bypass CircleCI history discovery. Explicit mode does not require `CIRCLECI_TOKEN`:
+The repository and current commit come from pipeline values supported by CircleCI's GitHub and Bitbucket integrations:
 
 ```yaml
-- tenzai/commit-diff-test:
-    context: tenzai-without-circleci-token
-    from-commit: "1111111111111111111111111111111111111111"
-    to-commit: "2222222222222222222222222222222222222222"
-    repository: example/web-app
+repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
+to-commit: << pipeline.git.revision >>
 ```
 
-`to-commit` defaults to `CIRCLE_SHA1`, and `repository` defaults to the current CircleCI project. CircleCI's GitHub App integration does not provide the legacy `CIRCLE_PROJECT_USERNAME`, `CIRCLE_PROJECT_REPONAME`, or `CIRCLE_REPOSITORY_URL` variables. In explicit mode, set `repository` when those variables are unavailable.
+## Job parameters
 
-## Parameters
+| Parameter     | Default                 | Description                                      |
+| ------------- | ----------------------- | ------------------------------------------------ |
+| `app-id`      | required                | Existing Tenzai application ID                   |
+| `repository`  | required                | Repository in `owner/repo` form                  |
+| `from-commit` | required                | Base commit; empty or `<nil>` skips the test     |
+| `to-commit`   | required                | Target commit                                    |
+| `server`      | `https://app.tenzai.io` | Tenzai SaaS URL or environment alias             |
+| `cli-version` | `0.2.0`                 | Pinned Tenzai CLI release version                |
+| `image-tag`   | `current`               | Tag from the `cimg/base` Linux executor image    |
 
-The `commit-diff-test` job and `trigger` command share these parameters:
+The standalone job does not check out the repository.
 
-| Parameter                 | Default                 | Description                                                                     |
-| ------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `access-key-variable`     | `TENZAI_ACCESS_KEY`     | Name of the environment variable containing the Tenzai access key               |
-| `app-id`                  | empty                   | Application ID; takes precedence over `app-id-variable`                         |
-| `app-id-variable`         | `TENZAI_APP_ID`         | Name of the environment variable containing the application ID                  |
-| `base-url`                | `https://api.tenzai.io` | Tenzai platform API base URL                                                    |
-| `circleci-token-variable` | `CIRCLECI_TOKEN`        | Name of the environment variable containing the CircleCI personal API token     |
-| `from-commit`             | empty                   | Explicit base commit; bypasses automatic history discovery                      |
-| `to-commit`               | empty                   | Explicit target commit; otherwise the current CircleCI revision                 |
-| `repository`              | empty                   | Repository in `owner/repo` form; otherwise the current project                  |
-| `history-branch`          | empty                   | Restrict automatic history discovery to one branch                              |
-| `dry-run`                 | `false`                 | Validate Tenzai authentication and application access without triggering a test |
-| `ignore-errors`           | `false`                 | Report failures without failing the CircleCI step or job                        |
+## Reusable commands
 
-The job also accepts `node-version`, which defaults to `24.15.0` from the `cimg/node` image.
+### `install`
 
-### Custom environment variable names
+Downloads a versioned Linux CLI archive from [`TenzaiLabs/tenzai-cli`](https://github.com/TenzaiLabs/tenzai-cli/releases), verifies the adjacent `.sha256` file, installs `tenzai` under `$HOME/.local/bin`, and persists that directory through `$BASH_ENV`.
 
-Parameters identify environment variable **names**, not secret values:
+Supported architectures:
+
+- `x86_64`
+- `aarch64` / `arm64`
 
 ```yaml
-- tenzai/commit-diff-test:
-    context: security-testing
-    access-key-variable: MY_TENZAI_ACCESS_KEY
-    app-id-variable: MY_TENZAI_APP_ID
-    circleci-token-variable: MY_CIRCLECI_TOKEN
+steps:
+  - tenzai/install:
+      version: "0.2.0"
 ```
 
-## Reusable command
+### `trigger`
 
-Use `trigger` inside an existing job when its executor already provides Node.js 24 or newer:
+Requires `tenzai` on `PATH`, making it suitable for an existing job that installs the CLI itself:
 
 ```yaml
-jobs:
-  deploy:
-    docker:
-      - image: cimg/node:24.15.0
-    steps:
-      - checkout
-      - run: ./deploy.sh
-      - tenzai/trigger
+steps:
+  - tenzai/trigger:
+      app-id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
+      repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
+      from-commit: << pipeline.git.base_revision >>
+      to-commit: << pipeline.git.revision >>
 ```
 
-The command runs directly with Node, so it does not source CircleCI's `$BASH_ENV`. Values exported to `$BASH_ENV` by an earlier step are unavailable to the command. Put credentials in a context or job environment, and pass a known application ID through `app-id` when needed.
-
-The standalone `commit-diff-test` job does not check out the repository.
-
-## Dry run
-
-`dry-run: true` sends only `GET /v1/applications/{app-id}` to the configured Tenzai API. It validates the access key and application access without reading CircleCI history or triggering a test, so `CIRCLECI_TOKEN` is not required. Use `base-url` to run this integration check against a non-production environment. Trailing slashes are removed; test links derive the matching app host when the API host starts with `api.`. Other host patterns omit the UI link rather than pointing it at the API.
-
-## Failure handling
-
-By default, malformed configuration, CircleCI API failures, and Tenzai API failures fail the step. Set `ignore-errors: true` when a transient trigger failure must not fail the deployment workflow. The error is still reported, but the step exits successfully so later successful deployments remain eligible as history anchors.
-
-## Results
-
-The orb succeeds after Tenzai accepts the test. Test execution continues asynchronously in Tenzai. For applications connected to GitHub, the Tenzai GitHub App posts the eventual **Tenzai Test** check run and findings report on the tested commit.
-
-## Development and releases
+The command executes:
 
 ```bash
-npm ci --ignore-scripts
-npm run check
-circleci orb pack src > orb.yml
-circleci orb validate orb.yml
+tenzai test run \
+  --app-id "$APP_ID" \
+  --profile commit-diff \
+  --repository "$REPOSITORY" \
+  --commit-from "$FROM_COMMIT" \
+  --commit-to "$TO_COMMIT"
 ```
 
-The CircleCI pipeline uses the Orb Development Kit to lint, pack, review, and integration-test the orb. Tags matching `vX.Y.Z` publish immutable production versions to `tenzai/incremental-test`.
+## Development
 
-### Maintainer setup
+```bash
+shellcheck src/scripts/*.sh test/*.sh
+bash test/scripts_test.sh
+circleci orb pack src > orb.yml
+circleci orb validate orb.yml
+circleci config validate .circleci/config.yml
+```
 
-Before the first pipeline runs:
+The integration workflow installs the CLI through the packed development orb and runs `tenzai --version` plus `tenzai test run --help`. It does not require Tenzai credentials or submit a test.
 
-1. Create the public registry entry with `circleci orb create tenzai/incremental-test`. Do not pass `--private`; an orb cannot later switch between public and private.
-2. Create a restricted `tenzai-orb-testing` context containing a test-only `TENZAI_ACCESS_KEY` and `TENZAI_APP_ID`. The key needs `app:read`; the integration test only uses dry-run mode.
-3. Create a restricted `orb-publishing` context containing the `CIRCLE_TOKEN` expected by `circleci/orb-tools`.
+## Publishing
 
-Production orb versions are immutable. Create a `vX.Y.Z` tag only after the injected development orb passes the integration test.
+Before the first release:
+
+1. Register the `TenzaiLabs` organization on CircleCI's Free plan.
+2. Claim the `tenzai` namespace.
+3. Create the public `tenzai/incremental-test` orb. Registry orbs cannot be deleted or change visibility.
+4. Create a restricted `orb-publishing` context containing `CIRCLE_TOKEN` for a CircleCI organization owner.
+
+Tags matching `vX.Y.Z` publish immutable production versions through the Orb Development Kit pipeline. Publish only after the development-orb installation test passes.

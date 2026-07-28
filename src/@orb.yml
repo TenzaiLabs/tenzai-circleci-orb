@@ -2,8 +2,7 @@ version: 2.1
 
 description: >
   Trigger a fire-and-forget Tenzai incremental security test after a successful
-  deployment. The orb automatically compares the current commit with the
-  previous successful run of the same CircleCI workflow.
+  deployment using CircleCI's pipeline revisions and the Tenzai CLI.
 
 display:
   home_url: "https://tenzai.io"
