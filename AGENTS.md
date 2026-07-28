@@ -28,12 +28,12 @@ circleci orb validate orb.yml
 circleci config validate .circleci/config.yml
 ```
 
-The installer must continue to verify the adjacent SHA-256 asset before extracting or installing the CLI. Keep release URLs versioned and map Linux `x86_64` and `aarch64` to their exact Rust target names.
+The orb delegates release selection, platform detection, and checksum verification to `TenzaiLabs/tenzai-cli/main/install.sh`. Keep the wrapper limited to choosing the install directory and persisting it through `$BASH_ENV`.
 
 ## Orb contract
 
 - Primary job: `commit-diff-test`; reusable commands: `install` and `trigger`.
-- The job uses `cimg/base`, installs a pinned CLI release, and does not check out source.
+- The job uses `cimg/base`, installs the latest CLI release through the official installer, and does not check out source.
 - The `trigger` command requires `tenzai` on `PATH`; it never installs implicitly.
 - Authentication uses the CLI-native `TENZAI_SERVICE_ACCOUNT_TOKEN` environment variable.
 - `app-id`, `repository`, `from-commit`, and `to-commit` are explicit orb parameters.
@@ -48,6 +48,6 @@ Do not log credentials or include real customer identifiers in source, examples,
 
 ## Releases
 
-The default CLI version is pinned in both `src/commands/install.yml` and `src/jobs/commit-diff-test.yml`; update both together and test the real archive in `cimg/base` before release.
+The installer intentionally follows the latest public CLI release. Test the real installer in `cimg/base` before each orb release.
 
 The Orb Development Kit pipeline packs, lints, reviews, and tests the orb. The integration test installs the CLI through the development orb and invokes only `--version` and `test run --help`. Tags matching `vX.Y.Z` publish immutable production versions to `tenzai/incremental-test` through the restricted `orb-publishing` context.

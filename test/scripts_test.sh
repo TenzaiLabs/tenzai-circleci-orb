@@ -10,83 +10,47 @@ fail() {
     exit 1
 }
 
-make_archive() {
-    local target="$1"
-    local archive="tenzai-0.2.0-$target.tar.gz"
-    local stage="$scratch/stage/tenzai-0.2.0-$target"
-    mkdir -p "$stage"
-    cat > "$stage/tenzai" <<'SCRIPT'
-#!/usr/bin/env bash
-echo "tenzai 0.2.0"
-SCRIPT
-    chmod +x "$stage/tenzai"
-    tar -czf "$scratch/$archive" -C "$scratch/stage" "tenzai-0.2.0-$target"
-    (cd "$scratch" && sha256sum "$archive" > "$archive.sha256")
-}
-
-make_archive "x86_64-unknown-linux-gnu"
-make_archive "aarch64-unknown-linux-gnu"
-
 mock_bin="$scratch/mock-bin"
 mkdir -p "$mock_bin"
-cat > "$mock_bin/uname" <<'SCRIPT'
-#!/usr/bin/env bash
-case "${1:-}" in
-    -s) echo "${TEST_UNAME_S:-Linux}" ;;
-    -m) echo "${TEST_UNAME_M:-x86_64}" ;;
-    *) exit 1 ;;
-esac
-SCRIPT
 cat > "$mock_bin/curl" <<'SCRIPT'
 #!/usr/bin/env bash
-while (($#)); do
-    case "$1" in
-        --output)
-            output="$2"
-            shift 2
-            ;;
-        http*)
-            url="$1"
-            shift
-            ;;
-        *) shift ;;
+for argument in "$@"; do
+    case "$argument" in
+        http*) url="$argument" ;;
     esac
 done
-cp "$TEST_RELEASE_FIXTURES/$(basename "$url")" "$output"
+printf '%s\n' "$url" > "$TEST_CURL_CALLS"
+cat "$TEST_INSTALLER_FIXTURE"
 SCRIPT
-chmod +x "$mock_bin/uname" "$mock_bin/curl"
+chmod +x "$mock_bin/curl"
 
-for architecture in x86_64 aarch64; do
-    case_dir="$scratch/install-$architecture"
-    mkdir -p "$case_dir/home"
-    bash_env="$case_dir/bash_env"
-    PATH="$mock_bin:$PATH" \
-        HOME="$case_dir/home" \
-        BASH_ENV="$bash_env" \
-        TEST_RELEASE_FIXTURES="$scratch" \
-        TEST_UNAME_M="$architecture" \
-        TENZAI_ORB_CLI_VERSION="0.2.0" \
-        bash "$root/src/scripts/install.sh" >/dev/null
+installer_fixture="$scratch/install-fixture.sh"
+cat > "$installer_fixture" <<'SCRIPT'
+#!/bin/sh
+set -eu
+: "${TENZAI_INSTALL_DIR:?}"
+mkdir -p "$TENZAI_INSTALL_DIR"
+cat > "$TENZAI_INSTALL_DIR/tenzai" <<'BINARY'
+#!/usr/bin/env bash
+echo "tenzai test version"
+BINARY
+chmod +x "$TENZAI_INSTALL_DIR/tenzai"
+SCRIPT
 
-    installed="$case_dir/home/.local/bin/tenzai"
-    [[ -x "$installed" ]] || fail "CLI was not installed for $architecture"
-    "$installed" --version >/dev/null
-    grep -F "$case_dir/home/.local/bin" "$bash_env" >/dev/null || \
-        fail "install path was not persisted for $architecture"
-done
+install_dir="$scratch/install-bin"
+bash_env="$scratch/bash_env"
+curl_calls="$scratch/curl-calls"
+PATH="$mock_bin:$PATH" \
+    BASH_ENV="$bash_env" \
+    TEST_CURL_CALLS="$curl_calls" \
+    TEST_INSTALLER_FIXTURE="$installer_fixture" \
+    TENZAI_ORB_INSTALL_DIR="$install_dir" \
+    bash "$root/src/scripts/install.sh" >/dev/null
 
-bad_fixtures="$scratch/bad-fixtures"
-mkdir -p "$bad_fixtures"
-cp "$scratch/tenzai-0.2.0-x86_64-unknown-linux-gnu.tar.gz" "$bad_fixtures/"
-printf '%064d  %s\n' 0 "tenzai-0.2.0-x86_64-unknown-linux-gnu.tar.gz" > \
-    "$bad_fixtures/tenzai-0.2.0-x86_64-unknown-linux-gnu.tar.gz.sha256"
-if PATH="$mock_bin:$PATH" \
-    HOME="$scratch/bad-home" \
-    TEST_RELEASE_FIXTURES="$bad_fixtures" \
-    TENZAI_ORB_CLI_VERSION="0.2.0" \
-    bash "$root/src/scripts/install.sh" >/dev/null 2>&1; then
-    fail "installer accepted a checksum mismatch"
-fi
+[[ -x "$install_dir/tenzai" ]] || fail "CLI was not installed"
+grep -Fx "https://raw.githubusercontent.com/TenzaiLabs/tenzai-cli/main/install.sh" \
+    "$curl_calls" >/dev/null || fail "unexpected installer URL"
+grep -F "$install_dir" "$bash_env" >/dev/null || fail "install path was not persisted"
 
 for from_commit in "" "<nil>"; do
     TENZAI_ORB_FROM_COMMIT="$from_commit" \

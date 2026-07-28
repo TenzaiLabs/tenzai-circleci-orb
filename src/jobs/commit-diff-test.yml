@@ -17,10 +17,6 @@ parameters:
     type: string
     default: https://app.tenzai.io
     description: Tenzai SaaS URL or environment alias.
-  cli-version:
-    type: string
-    default: "0.2.0"
-    description: Tenzai CLI release version.
   image-tag:
     type: string
     default: current
@@ -31,8 +27,7 @@ executor:
   tag: << parameters.image-tag >>
 
 steps:
-  - install:
-      version: << parameters.cli-version >>
+  - install
   - trigger:
       app-id: << parameters.app-id >>
       repository: << parameters.repository >>

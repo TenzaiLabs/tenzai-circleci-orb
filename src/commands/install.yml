@@ -1,10 +1,6 @@
-description: Install a pinned Tenzai CLI release on a Linux executor.
+description: Install the latest Tenzai CLI release.
 
 parameters:
-  version:
-    type: string
-    default: "0.2.0"
-    description: Tenzai CLI release version.
   install-dir:
     type: string
     default: ""
@@ -14,6 +10,5 @@ steps:
   - run:
       name: Install Tenzai CLI
       environment:
-        TENZAI_ORB_CLI_VERSION: << parameters.version >>
         TENZAI_ORB_INSTALL_DIR: << parameters.install-dir >>
       command: <<include(scripts/install.sh)>>

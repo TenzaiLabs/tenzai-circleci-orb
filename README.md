@@ -2,7 +2,7 @@
 
 Trigger a fire-and-forget [Tenzai](https://tenzai.io) commit-diff test after a successful CircleCI deployment.
 
-The orb installs a pinned Tenzai CLI release, verifies its SHA-256 checksum, and submits a test from CircleCI's previous pipeline revision to the current revision. It exits as soon as Tenzai accepts the request.
+The orb runs the official Tenzai CLI installer, which downloads the latest release and verifies its SHA-256 checksum, then submits a test from CircleCI's previous pipeline revision to the current revision. It exits as soon as Tenzai accepts the request.
 
 ## Quick start
 
@@ -66,7 +66,6 @@ to-commit: << pipeline.git.revision >>
 | `from-commit` | required                | Base commit; empty or `<nil>` skips the test     |
 | `to-commit`   | required                | Target commit                                    |
 | `server`      | `https://app.tenzai.io` | Tenzai SaaS URL or environment alias             |
-| `cli-version` | `0.2.0`                 | Pinned Tenzai CLI release version                |
 | `image-tag`   | `current`               | Tag from the `cimg/base` Linux executor image    |
 
 The standalone job does not check out the repository.
@@ -75,17 +74,11 @@ The standalone job does not check out the repository.
 
 ### `install`
 
-Downloads a versioned Linux CLI archive from [`TenzaiLabs/tenzai-cli`](https://github.com/TenzaiLabs/tenzai-cli/releases), verifies the adjacent `.sha256` file, installs `tenzai` under `$HOME/.local/bin`, and persists that directory through `$BASH_ENV`.
-
-Supported architectures:
-
-- `x86_64`
-- `aarch64` / `arm64`
+Runs the official [`TenzaiLabs/tenzai-cli` installer](https://github.com/TenzaiLabs/tenzai-cli/blob/main/install.sh). The installer selects the latest release for the executor platform, verifies its adjacent `.sha256` file, and installs `tenzai` under `$HOME/.local/bin`. The orb persists that directory through `$BASH_ENV` for later steps.
 
 ```yaml
 steps:
-  - tenzai/install:
-      version: "0.2.0"
+  - tenzai/install
 ```
 
 ### `trigger`
