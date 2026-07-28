@@ -1,0 +1,26 @@
+description: Trigger an incremental Tenzai test after a deployment succeeds.
+
+usage:
+  version: 2.1
+
+  orbs:
+    tenzai: tenzai/incremental-test@1.0.0
+
+  jobs:
+    deploy:
+      docker:
+        - image: cimg/base:current
+      steps:
+        - checkout
+        - run:
+            name: Deploy application
+            command: ./deploy.sh
+
+  workflows:
+    deploy-and-test:
+      jobs:
+        - deploy
+        - tenzai/commit-diff-test:
+            context: tenzai
+            requires:
+              - deploy

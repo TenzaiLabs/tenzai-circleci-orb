@@ -1,0 +1,10 @@
+description: Node 24 executor for Tenzai incremental tests.
+
+parameters:
+  tag:
+    type: string
+    default: "24.15.0"
+    description: Tag from the cimg/node image.
+
+docker:
+  - image: cimg/node:<< parameters.tag >>

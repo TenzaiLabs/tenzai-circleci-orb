@@ -1,0 +1,71 @@
+description: >
+  Trigger a Tenzai incremental security test after a deployment job succeeds.
+  This job does not check out the repository or wait for the test result.
+
+parameters:
+  access-key-variable:
+    type: env_var_name
+    default: TENZAI_ACCESS_KEY
+    description: Environment variable containing the Tenzai service-account access key.
+  app-id:
+    type: string
+    default: ""
+    description: Existing Tenzai application ID. Takes precedence over app-id-variable.
+  app-id-variable:
+    type: env_var_name
+    default: TENZAI_APP_ID
+    description: Environment variable containing the existing Tenzai application ID.
+  base-url:
+    type: string
+    default: https://api.tenzai.io
+    description: Tenzai platform API base URL.
+  circleci-token-variable:
+    type: env_var_name
+    default: CIRCLECI_TOKEN
+    description: Environment variable containing a CircleCI personal API token.
+  from-commit:
+    type: string
+    default: ""
+    description: Explicit base commit. When set, CircleCI history discovery is skipped.
+  to-commit:
+    type: string
+    default: ""
+    description: Explicit target commit. Defaults to the current CircleCI revision.
+  repository:
+    type: string
+    default: ""
+    description: Repository in owner/repo form. Defaults to the current CircleCI project.
+  history-branch:
+    type: string
+    default: ""
+    description: Optional branch filter for automatic workflow history discovery.
+  dry-run:
+    type: boolean
+    default: false
+    description: Validate Tenzai authentication and application access without triggering a test.
+  ignore-errors:
+    type: boolean
+    default: false
+    description: Report errors without failing the CircleCI job.
+  node-version:
+    type: string
+    default: "24.15.0"
+    description: Tag from the cimg/node image.
+
+executor:
+  name: default
+  tag: << parameters.node-version >>
+
+steps:
+  - trigger:
+      access-key-variable: << parameters.access-key-variable >>
+      app-id: << parameters.app-id >>
+      app-id-variable: << parameters.app-id-variable >>
+      base-url: << parameters.base-url >>
+      circleci-token-variable: << parameters.circleci-token-variable >>
+      from-commit: << parameters.from-commit >>
+      to-commit: << parameters.to-commit >>
+      repository: << parameters.repository >>
+      history-branch: << parameters.history-branch >>
+      dry-run: << parameters.dry-run >>
+      ignore-errors: << parameters.ignore-errors >>
