@@ -6,6 +6,8 @@ The orb runs the official Tenzai CLI installer, which downloads the latest relea
 
 ## Quick start
 
+In CircleCI, enable **Allow uncertified public orbs** under **Organization Settings → Security**. Public community orbs require this organization-wide setting until they receive a CircleCI partner or certified designation.
+
 Create a restricted CircleCI context named `tenzai` containing:
 
 | Variable                       | Purpose                                                                     |
@@ -122,8 +124,9 @@ The integration workflow installs the CLI through the packed development orb and
 Before the first release:
 
 1. Register the `TenzaiLabs` organization on CircleCI's Free plan.
-2. Claim the `tenzai` namespace.
-3. Create the public `tenzai/incremental-test` orb. Registry orbs cannot be deleted or change visibility.
-4. Create a restricted `orb-publishing` context containing `CIRCLE_TOKEN` for a CircleCI organization owner.
+2. Enable uncertified public orbs under **Organization Settings → Security**.
+3. Claim the `tenzai` namespace.
+4. Create the public `tenzai/incremental-test` orb. Registry orbs cannot be deleted or change visibility.
+5. Create a restricted `orb-publishing` context containing `CIRCLE_TOKEN` for a CircleCI organization owner.
 
 Tags matching `vX.Y.Z` publish immutable production versions through the Orb Development Kit pipeline. Publish only after the development-orb installation test passes.
