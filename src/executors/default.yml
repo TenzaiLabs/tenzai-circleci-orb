@@ -1,0 +1,10 @@
+description: Linux executor for Tenzai incremental tests.
+
+parameters:
+  tag:
+    type: string
+    default: current
+    description: Tag from the cimg/base image.
+
+docker:
+  - image: cimg/base:<< parameters.tag >>

@@ -1,0 +1,14 @@
+description: Install the latest Tenzai CLI release.
+
+parameters:
+  install_dir:
+    type: string
+    default: ""
+    description: Installation directory. Defaults to $HOME/.local/bin.
+
+steps:
+  - run:
+      name: Install Tenzai CLI
+      environment:
+        TENZAI_ORB_INSTALL_DIR: << parameters.install_dir >>
+      command: <<include(scripts/install.sh)>>

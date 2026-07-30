@@ -1,0 +1,30 @@
+description: Trigger an incremental Tenzai test after a deployment succeeds.
+
+usage:
+  version: 2.1
+
+  orbs:
+    tenzai: tenzai/incremental-test@1.0.0
+
+  jobs:
+    deploy:
+      docker:
+        - image: cimg/base:current
+      steps:
+        - checkout
+        - run:
+            name: Deploy application
+            command: ./deploy.sh
+
+  workflows:
+    deploy-and-test:
+      jobs:
+        - deploy
+        - tenzai/commit_diff_test:
+            context: tenzai
+            app_id: 98595651-fdd4-475f-a67c-3209d9b3ce3b
+            repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
+            from_commit: << pipeline.git.base_revision >>
+            to_commit: << pipeline.git.revision >>
+            requires:
+              - deploy

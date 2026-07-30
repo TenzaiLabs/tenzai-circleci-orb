@@ -1,0 +1,45 @@
+version: 2.1
+setup: true
+
+orbs:
+  orb-tools: circleci/orb-tools@12.4.0
+
+filters: &filters
+  tags:
+    only: /.*/
+
+jobs:
+  unit-tests:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Check shell scripts
+          command: shellcheck src/scripts/*.sh test/*.sh
+      - run:
+          name: Test shell scripts
+          command: bash test/scripts_test.sh
+
+workflows:
+  lint-pack:
+    jobs:
+      - orb-tools/lint:
+          filters: *filters
+      - orb-tools/pack:
+          filters: *filters
+      - orb-tools/review:
+          orb_name: incremental-test
+          filters: *filters
+      - unit-tests:
+          filters: *filters
+      - orb-tools/continue:
+          pipeline_number: << pipeline.number >>
+          vcs_type: github
+          orb_name: incremental-test
+          requires:
+            - orb-tools/lint
+            - orb-tools/pack
+            - orb-tools/review
+            - unit-tests
+          filters: *filters

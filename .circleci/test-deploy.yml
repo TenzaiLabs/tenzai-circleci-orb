@@ -1,0 +1,43 @@
+version: 2.1
+
+orbs:
+  orb-tools: circleci/orb-tools@12.4.0
+  incremental-test: {}
+
+filters: &filters
+  tags:
+    only: /.*/
+
+release-filters: &release-filters
+  branches:
+    ignore: /.*/
+  tags:
+    only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+
+workflows:
+  test-deploy:
+    jobs:
+      - integration-test:
+          filters: *filters
+      - orb-tools/pack:
+          filters: *release-filters
+      - orb-tools/publish:
+          orb_name: tenzai/incremental-test
+          vcs_type: github
+          pub_type: production
+          enable_pr_comment: false
+          context: orb-publishing
+          requires:
+            - integration-test
+            - orb-tools/pack
+          filters: *release-filters
+
+jobs:
+  integration-test:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - incremental-test/install
+      - run:
+          name: Verify Tenzai CLI
+          command: tenzai --version && tenzai test run --help

@@ -1,0 +1,36 @@
+description: Install the Tenzai CLI and trigger a fire-and-forget commit-diff test.
+
+parameters:
+  app_id:
+    type: string
+    description: Existing Tenzai application ID.
+  repository:
+    type: string
+    description: Repository in owner/repo form.
+  from_commit:
+    type: string
+    description: Base commit. Empty or <nil> skips the test.
+  to_commit:
+    type: string
+    description: Target commit.
+  server:
+    type: string
+    default: https://app.tenzai.io
+    description: Tenzai SaaS URL or environment alias.
+  image_tag:
+    type: string
+    default: current
+    description: Tag from the cimg/base image.
+
+executor:
+  name: default
+  tag: << parameters.image_tag >>
+
+steps:
+  - install
+  - trigger:
+      app_id: << parameters.app_id >>
+      repository: << parameters.repository >>
+      from_commit: << parameters.from_commit >>
+      to_commit: << parameters.to_commit >>
+      server: << parameters.server >>
