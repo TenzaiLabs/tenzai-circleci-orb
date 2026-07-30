@@ -22,9 +22,9 @@ usage:
         - deploy
         - tenzai/commit_diff_test:
             context: tenzai
-            app-id: 98595651-fdd4-475f-a67c-3209d9b3ce3b
+            app_id: 98595651-fdd4-475f-a67c-3209d9b3ce3b
             repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
-            from-commit: << pipeline.git.base_revision >>
-            to-commit: << pipeline.git.revision >>
+            from_commit: << pipeline.git.base_revision >>
+            to_commit: << pipeline.git.revision >>
             requires:
               - deploy

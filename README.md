@@ -36,10 +36,10 @@ workflows:
       - deploy
       - tenzai/commit_diff_test:
           context: tenzai
-          app-id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
+          app_id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
           repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
-          from-commit: << pipeline.git.base_revision >>
-          to-commit: << pipeline.git.revision >>
+          from_commit: << pipeline.git.base_revision >>
+          to_commit: << pipeline.git.revision >>
           requires:
             - deploy
 ```
@@ -56,19 +56,19 @@ The repository and current commit come from pipeline values supported by CircleC
 
 ```yaml
 repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
-to-commit: << pipeline.git.revision >>
+to_commit: << pipeline.git.revision >>
 ```
 
 ## Job parameters
 
 | Parameter     | Default                 | Description                                      |
 | ------------- | ----------------------- | ------------------------------------------------ |
-| `app-id`      | required                | Existing Tenzai application ID                   |
+| `app_id`      | required                | Existing Tenzai application ID                   |
 | `repository`  | required                | Repository in `owner/repo` form                  |
-| `from-commit` | required                | Base commit; empty or `<nil>` skips the test     |
-| `to-commit`   | required                | Target commit                                    |
+| `from_commit` | required                | Base commit; empty or `<nil>` skips the test     |
+| `to_commit`   | required                | Target commit                                    |
 | `server`      | `https://app.tenzai.io` | Tenzai SaaS URL or environment alias             |
-| `image-tag`   | `current`               | Tag from the `cimg/base` Linux executor image    |
+| `image_tag`   | `current`               | Tag from the `cimg/base` Linux executor image    |
 
 The standalone job does not check out the repository.
 
@@ -90,10 +90,10 @@ Requires `tenzai` on `PATH`, making it suitable for an existing job that install
 ```yaml
 steps:
   - tenzai/trigger:
-      app-id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
+      app_id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
       repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
-      from-commit: << pipeline.git.base_revision >>
-      to-commit: << pipeline.git.revision >>
+      from_commit: << pipeline.git.base_revision >>
+      to_commit: << pipeline.git.revision >>
 ```
 
 The command executes:

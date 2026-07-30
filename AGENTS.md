@@ -36,7 +36,7 @@ The orb delegates release selection, platform detection, and checksum verificati
 - The job uses `cimg/base`, installs the latest CLI release through the official installer, and does not check out source.
 - The `trigger` command requires `tenzai` on `PATH`; it never installs implicitly.
 - Authentication uses the CLI-native `TENZAI_SERVICE_ACCOUNT_TOKEN` environment variable.
-- `app-id`, `repository`, `from-commit`, and `to-commit` are explicit orb parameters.
+- `app_id`, `repository`, `from_commit`, and `to_commit` are explicit orb parameters.
 - Empty and `<nil>` base commits skip successfully.
 - The intended caller values are `pipeline.git.repo_owner`, `pipeline.git.repo_name`, `pipeline.git.base_revision`, and `pipeline.git.revision`.
 - `pipeline.git.base_revision` represents the previous pipeline, not necessarily a successful deployment, and is unavailable to GitHub App projects.

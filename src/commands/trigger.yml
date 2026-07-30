@@ -1,16 +1,16 @@
 description: Trigger a fire-and-forget Tenzai commit-diff test with an installed Tenzai CLI.
 
 parameters:
-  app-id:
+  app_id:
     type: string
     description: Existing Tenzai application ID.
   repository:
     type: string
     description: Repository in owner/repo form.
-  from-commit:
+  from_commit:
     type: string
     description: Base commit. Empty or <nil> skips the test.
-  to-commit:
+  to_commit:
     type: string
     description: Target commit.
   server:
@@ -22,9 +22,9 @@ steps:
   - run:
       name: Trigger Tenzai incremental test
       environment:
-        TENZAI_ORB_APP_ID: << parameters.app-id >>
+        TENZAI_ORB_APP_ID: << parameters.app_id >>
         TENZAI_ORB_REPOSITORY: << parameters.repository >>
-        TENZAI_ORB_FROM_COMMIT: << parameters.from-commit >>
-        TENZAI_ORB_TO_COMMIT: << parameters.to-commit >>
+        TENZAI_ORB_FROM_COMMIT: << parameters.from_commit >>
+        TENZAI_ORB_TO_COMMIT: << parameters.to_commit >>
         TENZAI_ORB_SERVER: << parameters.server >>
       command: <<include(scripts/trigger.sh)>>
