@@ -20,7 +20,7 @@ Then add the orb job after deployment:
 version: 2.1
 
 orbs:
-  tenzai: tenzai/incremental-test@1.0.0
+  tenzai: tenzai/incremental-test@2.0.0
 
 jobs:
   deploy:
@@ -34,7 +34,7 @@ workflows:
   deploy-and-test:
     jobs:
       - deploy
-      - tenzai/commit_diff_test:
+      - tenzai/incremental_test:
           context: tenzai
           app_id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
           repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
