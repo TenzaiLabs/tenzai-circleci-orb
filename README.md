@@ -1,6 +1,6 @@
 # Tenzai Incremental Test — CircleCI Orb
 
-Trigger a fire-and-forget [Tenzai](https://tenzai.io) commit-diff test after a successful CircleCI deployment.
+Trigger a fire-and-forget [Tenzai](https://app.tenzai.io) commit-diff test after a successful CircleCI deployment.
 
 The orb runs the official Tenzai CLI installer, which downloads the latest release and verifies its SHA-256 checksum, then submits a test from CircleCI's previous pipeline revision to the current revision. It exits as soon as Tenzai accepts the request.
 
@@ -34,7 +34,7 @@ workflows:
   deploy-and-test:
     jobs:
       - deploy
-      - tenzai/commit-diff-test:
+      - tenzai/commit_diff_test:
           context: tenzai
           app-id: "98595651-fdd4-475f-a67c-3209d9b3ce3b"
           repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>

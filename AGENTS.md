@@ -11,7 +11,7 @@ Public CircleCI registry orb (`tenzai/incremental-test`) that installs the Tenza
 | `src/@orb.yml`                  | Registry metadata                                           |
 | `src/commands/install.yml`      | Checksum-verified Tenzai CLI installer                      |
 | `src/commands/trigger.yml`      | Reusable command for an already-installed CLI               |
-| `src/jobs/commit-diff-test.yml` | Turnkey install-and-trigger job                              |
+| `src/jobs/commit_diff_test.yml` | Turnkey install-and-trigger job                              |
 | `src/executors/default.yml`     | Default `cimg/base` Linux executor                           |
 | `src/scripts/install.sh`        | Release selection, verification, extraction, and PATH setup |
 | `src/scripts/trigger.sh`        | First-run skip and `tenzai test run` invocation              |
@@ -32,7 +32,7 @@ The orb delegates release selection, platform detection, and checksum verificati
 
 ## Orb contract
 
-- Primary job: `commit-diff-test`; reusable commands: `install` and `trigger`.
+- Primary job: `commit_diff_test`; reusable commands: `install` and `trigger`.
 - The job uses `cimg/base`, installs the latest CLI release through the official installer, and does not check out source.
 - The `trigger` command requires `tenzai` on `PATH`; it never installs implicitly.
 - Authentication uses the CLI-native `TENZAI_SERVICE_ACCOUNT_TOKEN` environment variable.

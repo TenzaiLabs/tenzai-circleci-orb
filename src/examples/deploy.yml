@@ -20,7 +20,7 @@ usage:
     deploy-and-test:
       jobs:
         - deploy
-        - tenzai/commit-diff-test:
+        - tenzai/commit_diff_test:
             context: tenzai
             app-id: 98595651-fdd4-475f-a67c-3209d9b3ce3b
             repository: << pipeline.git.repo_owner >>/<< pipeline.git.repo_name >>
