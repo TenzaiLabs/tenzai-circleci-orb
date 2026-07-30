@@ -29,7 +29,7 @@ workflows:
       - orb-tools/pack:
           filters: *filters
       - orb-tools/review:
-          orb_name: incremental-test
+          orb_name: tenzai
           filters: *filters
       - unit-tests:
           filters: *filters
